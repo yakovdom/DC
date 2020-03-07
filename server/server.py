@@ -3,45 +3,13 @@ from tornado import httpserver
 from tornado import gen
 from tornado.ioloop import IOLoop
 import tornado.web
+from db import DB
 
-
-class Item:
-    def __init__(self, name, id, category):
-        self.name = name
-        self.id = id
-        self.category = category
-
-    def as_str(self):
-        return 'name: {}, id: {}, category: {}\n'.format(self.name, self.id, self.category)
-
-    def as_json(self):
-        res = {
-            'name': self.name,
-            'id': self.id,
-            'category': self.category
-        }
-        return res
-
-
-class ItemStorage:
-    def __init__(self):
-        self.storage = dict()
-
-    def to_str(self):
-        result = ''
-        for item in self.storage.values():
-            result += item.as_str()
-        return result
-
-    def to_json(self):
-        all = []
-        for item in self.storage.values():
-            all.append(item.as_json())
-        return {'items': all}
-
-
-items = ItemStorage()
-
+items = DB()
+try:
+    items.create()
+except:
+    pass
 
 class CreateHandler(tornado.web.RequestHandler):
     def post(self):
@@ -52,19 +20,29 @@ class CreateHandler(tornado.web.RequestHandler):
             name = body['name']
             id = body['id']
             category = body['category']
+            '''
             if id in items.storage:
                 raise Exception('item {} already exists'.format(id))
             items.storage[id] = Item(name, id, category)
+            response = {'result': 'ok'}
+            '''
+            response = items.add(id, name, category)
+            print(response)
+            self.write(response)
         except Exception as e:
-            self.write('Can\'t add item: {}\n'.format(e))
+            response = {'result': 'error', 'error_message': 'Can\'t add item: {}'.format(e)}
+            self.write(response)
 
 
 class ShowAllHandler(tornado.web.RequestHandler):
     def get(self):
         global items
         print('__SHOW_ALL__')
-        # self.write(items.to_str())
-        self.write(items.to_json())
+        # response = items.to_json()
+        # response['result'] = 'ok'
+        response = items.get_all()
+        print(response)
+        self.write(response)
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -72,31 +50,28 @@ class MainHandler(tornado.web.RequestHandler):
         global items
         print(self.request.headers)
         id = self.request.uri[1:]
-        if id in items.storage:
-            print('__SHOW__')
-            self.write(items.storage[id].as_json())
-        else:
-            self.write('item {} not found\n'.format(id))
+        response = items.get_by_id(id)
+        self.write(response)
 
-    def post(self):
+    def put(self):
         global items
         id = self.request.uri[1:]
         print('__UPDATE__')
-        if id in items.storage:
-            body = json.loads(self.request.body)
-            items.storage[id].name = body['name']
-            items.storage[id].category = body['category']
-        else:
-            self.write('item {} not found\n'.format(id))
+        body = json.loads(self.request.body)
+        if 'name' not in body:
+            self.write({'result': 'error', 'error_message': 'boby has no \'name\''})
+            return
+        if 'category' not in body:
+            self.write({'result': 'error', 'error_message': 'boby has no \'category\''})
+            return
+        response = items.update(id, body['name'], body['category'])
+        self.write(response)
 
     def delete(self):
         global items
         id = self.request.uri[1:]
-        print('__DELETE__')
-        if id in items.storage:
-            items.storage.pop(id)
-        else:
-            self.write('item {} not found\n'.format(id))
+        response = items.delete(id)
+        self.write(response)
 
 
 class Application(tornado.web.Application):
@@ -117,4 +92,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
