@@ -7,9 +7,8 @@ RUN apt-get update \
     && pip install --upgrade pip \ 
     && pip install -r /app/requirements.txt
 
-ADD server.py /server/
-ADD auth.py /server/
-ADD db.py /server/
+ADD auth.py /auth/
+ADD db.py /auth/
 
 
-WORKDIR /server/
+WORKDIR /auth/

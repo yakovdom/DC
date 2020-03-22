@@ -1,8 +1,27 @@
 version: "3"
 
 services:
+
   server:
     build: server/
     command: python ./server.py
     ports:
       - 3333:3333
+    depends_on:
+      - mongo
+      - auth
+    restart: always
+
+  auth:
+    build: auth/
+    command: python ./auth.py
+    ports:
+      - 2222:2222
+ 
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+
+#    networks:
+#        - default

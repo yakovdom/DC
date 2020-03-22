@@ -1,79 +1,73 @@
-import sqlite3
+from pymongo import MongoClient
+
+MONGO_HOST = "mongo"
+MONGO_PORT = 27017
 
 
 class DB:
     def __init__(self):
-        self.conn = None
-        self.cursor = None
-        self.connect()
-
-    def connect(self):
-        self.conn = sqlite3.connect('my.sqlite')
-
-        def dict_factory(cursor, row):
-            d = {}
-            for idx, col in enumerate(cursor.description):
-                d[col[0]] = row[idx]
-            return d
-        self.conn.row_factory = dict_factory
-        self.cursor = self.conn.cursor()
-
-    def create(self):
-        self.cursor.execute('''CREATE TABLE items (id varchar primary key, name varchar, category varchar)''')
+        client = MongoClient(MONGO_HOST, MONGO_PORT)
+        db = client.shop
+        self.items = db.items
 
     def add(self, id, name, category):
         try:
-            self.cursor.execute("INSERT INTO items (id, name, category) VALUES ('{}','{}', '{}')".format(id, name, category))
-            response = {'result': 'ok'}
-        except sqlite3.DatabaseError as err:
-            response = {'result': 'error', 'error_message': err}
-        else:
-            self.conn.commit()
-        return response
+            if self.get_by_id(id)['result'] == 'OK':
+                response = {'result': 'Error', 'error_message': 'Item with id \'{}\' already exists'.format(id)}
+            else:
+                self.items.insert_one({'id': id, 'name': name, 'category': category})
+                response = {'result': 'OK'}
+        except:
+            response = {'result': 'error', 'error_message': 'Server error'}
 
-    def close(self):
-        self.cursor.close()
-        self.conn.close()
+        return response
 
     def get_all(self):
         try:
-            all = []
-            for row in self.cursor.execute('SELECT * FROM items'):
-                all.append(row)
-            response = {'result': 'OK', 'items': all}
-        except sqlite3.DatabaseError as err:
-            response = {'result': 'Error', 'error_message': 'Error'}
-        else:
-            self.conn.commit()
+            items = self.items.find({})
+            print(items)
+            result = list()
+            for item in items:
+                item.pop('_id')
+                result.append(item)
+            response = {'result': 'OK', 'items': result}
+        except:
+            response = {'result': 'Error', 'error_message': 'Server error'}
+
         return response
 
     def get_by_id(self, id):
         try:
-            self.cursor.execute("SELECT * FROM items WHERE id == '{}'".format(id))
-            row = self.cursor.fetchone()
-            response = {'result': 'OK', 'item': row}
-        except sqlite3.DatabaseError as err:
-            response = {'result': 'Error', 'error_message': 'Item not found'}
-        else:
-            self.conn.commit()
+            item = self.items.find_one({'id': id})
+            if item is None:
+                response = {'result': 'Error', 'error_message': 'Item with id \'{}\' not found'.format(id)}
+            else:
+                item.pop('_id')
+                response = {'result': 'OK', 'item': item}
+        except:
+            response = {'result': 'Error', 'error_message': 'Server error'}
         return response
 
     def update(self, id, name, category):
         try:
-            self.cursor.execute("UPDATE items SET name = '{}', category = '{}' WHERE id == '{}'".format(name, category, id))
-            response = {'result': 'OK'}
-        except sqlite3.DatabaseError as err:
-            response = {'result': 'Error', 'error_message': 'Item not found'}
-        else:
-            self.conn.commit()
+            if self.get_by_id(id)['result'] != 'OK':
+                response = {'result': 'Error', 'error_message': 'Item with id \'{}\' not found'.format(id)}
+            else:
+                self.items.update_one({'id': id}, {'$set': {'name': name, 'category': category}})
+                response = {'result': 'OK'}
+        except:
+            response = {'result': 'Error', 'error_message': 'Server error'}
+
         return response
 
     def delete(self, id):
         try:
-            self.cursor.execute("DELETE FROM items WHERE id == '{}'".format(id))
-            response = {'result': 'OK'}
-        except sqlite3.DatabaseError as err:
-            response = {'result': 'Error', 'error_message': 'Item not found '}
-        else:
-            self.conn.commit()
+            if self.get_by_id(id)['result'] != 'OK':
+                response = {'result': 'Error', 'error_message': 'Item with id \'{}\' not found'.format(id)}
+            else:
+                self.items.delete_one({'id': id})
+                response = {'result': 'OK'}
+        except:
+            response = {'result': 'Error', 'error_message': 'Server error'}
+
         return response

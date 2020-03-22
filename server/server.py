@@ -4,82 +4,139 @@ from tornado import gen
 from tornado.ioloop import IOLoop
 import tornado.web
 from db import DB
+from auth import Authorizer
 
 items = DB()
-try:
-    items.create()
-except:
-    pass
+authorizer = Authorizer()
 
-class CreateHandler(tornado.web.RequestHandler):
+
+class ItemHandler(tornado.web.RequestHandler):
     def post(self):
-        global items
-        print('__ADD__')
-        try:
-            body = json.loads(self.request.body)
-            name = body['name']
-            id = body['id']
-            category = body['category']
-            '''
-            if id in items.storage:
-                raise Exception('item {} already exists'.format(id))
-            items.storage[id] = Item(name, id, category)
-            response = {'result': 'ok'}
-            '''
-            response = items.add(id, name, category)
-            print(response)
-            self.write(response)
-        except Exception as e:
-            response = {'result': 'error', 'error_message': 'Can\'t add item: {}'.format(e)}
-            self.write(response)
+        global items, authorizer
 
+        body = json.loads(self.request.body)
+        necessary = ['name', 'id', 'category', 'token']
 
-class ShowAllHandler(tornado.web.RequestHandler):
-    def get(self):
-        global items
-        print('__SHOW_ALL__')
-        # response = items.to_json()
-        # response['result'] = 'ok'
-        response = items.get_all()
-        print(response)
+        for field in necessary:
+            if field not in body:
+                self.set_status(400, 'Bad request')
+                response = {'result': 'error', 'error_message': 'Bad request: need field \'{}\''.format(field)}
+                self.write(response)
+                return
+
+        token = body.pop('token')
+        if not authorizer.validate(token):
+            self.set_status(401, 'Unauthorized ')
+            response = {'result': 'error', 'error_message': 'Unauthorized'}
+            self.write(response)
+            return
+
+        name = body['name']
+        id = body['id']
+        category = body['category']
+        response = items.add(id, name, category)
         self.write(response)
 
-
-class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        global items
-        print(self.request.headers)
-        id = self.request.uri[1:]
+        global items, authorizer
+        body = json.loads(self.request.body)
+        necessary = ['id', 'token']
+
+        for field in necessary:
+            if field not in body:
+                self.set_status(400, 'Bad request')
+                response = {'result': 'error', 'error_message': 'Bad request: expected field \'{}\''.format(field)}
+                self.write(response)
+                return
+
+        token = body.pop('token')
+        if not authorizer.validate(token):
+            self.set_status(401, 'Unauthorized ')
+            response = {'result': 'error', 'error_message': 'Unauthorized'}
+            self.write(response)
+            return
+
+        id = body.pop('id')
         response = items.get_by_id(id)
         self.write(response)
 
     def put(self):
-        global items
-        id = self.request.uri[1:]
-        print('__UPDATE__')
+        global items, authorizer
         body = json.loads(self.request.body)
-        if 'name' not in body:
-            self.write({'result': 'error', 'error_message': 'boby has no \'name\''})
+        necessary = ['id', 'token']
+
+        for field in necessary:
+            if field not in body:
+                self.set_status(400, 'Bad request')
+                response = {'result': 'error', 'error_message': 'Bad request: expected field \'{}\''.format(field)}
+                self.write(response)
+                return
+
+        token = body.pop('token')
+        if not authorizer.validate(token):
+            self.set_status(401, 'Unauthorized ')
+            response = {'result': 'error', 'error_message': 'Unauthorized'}
+            self.write(response)
             return
-        if 'category' not in body:
-            self.write({'result': 'error', 'error_message': 'boby has no \'category\''})
-            return
+
+        id = body.pop('id')
+
         response = items.update(id, body['name'], body['category'])
         self.write(response)
 
     def delete(self):
-        global items
-        id = self.request.uri[1:]
+        global items, authorizer
+        body = json.loads(self.request.body)
+        necessary = ['id', 'token']
+
+        for field in necessary:
+            if field not in body:
+                self.set_status(400, 'Bad request')
+                response = {'result': 'error', 'error_message': 'Bad request: expected field \'{}\''.format(field)}
+                self.write(response)
+                return
+
+        token = body.pop('token')
+        if not authorizer.validate(token):
+            self.set_status(401, 'Unauthorized ')
+            response = {'result': 'error', 'error_message': 'Unauthorized'}
+            self.write(response)
+            return
+
+        id = body.pop('id')
+
         response = items.delete(id)
+        self.write(response)
+
+
+class ItemsHandler(tornado.web.RequestHandler):
+    def get(self):
+        global items, authorizer
+        body = json.loads(self.request.body)
+        necessary = ['id', 'token']
+        for field in necessary:
+            if field not in body:
+                self.set_status(400, 'Bad request')
+                response = {'result': 'error', 'error_message': 'Bad request: expected field \'{}\''.format(field)}
+                self.write(response)
+                return
+
+        token = body.pop('token')
+        if not authorizer.validate(token):
+            self.set_status(401, 'Unauthorized ')
+            response = {'result': 'error', 'error_message': 'Unauthorized'}
+            self.write(response)
+            return
+
+        response = items.get_all()
         self.write(response)
 
 
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-            (r"/create", CreateHandler),
-            (r"/showall", ShowAllHandler),
-            (r"/.*", MainHandler)
+            (r"/item", ItemHandler),
+            (r"/items", ItemsHandler)
         ]
         tornado.web.Application.__init__(self, handlers)
 
