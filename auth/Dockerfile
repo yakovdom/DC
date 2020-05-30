@@ -7,8 +7,8 @@ RUN apt-get update \
     && pip install --upgrade pip \ 
     && pip install -r /app/requirements.txt
 
-ADD *.py /server/
-ADD *.json /server/
+ADD *.py /auth/
+ADD *.json /auth/
 
 
-WORKDIR /server/
+WORKDIR /auth/

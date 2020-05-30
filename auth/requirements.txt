@@ -1,4 +1,4 @@
 tornado==6.0.3
 pymongo==3.10.1
 mysql-connector-python==8.0.19
-requests==2.23.0
+pika==1.1.0

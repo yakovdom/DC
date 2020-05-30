@@ -6,3 +6,5 @@ docker-compose build
 
 Run:
 docker-compose up
+
+![alt text](figures/scheme.HEIC)

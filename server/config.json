@@ -1,0 +1,30 @@
+{
+    "server": {
+        "port": 3333
+    },
+    "push": {
+        "host": "push",
+        "port": 2345,
+        "login": "yack_domnicky@mail.ru",
+        "password": "yakovnxt",
+        "provider_host": "smtp.mail.ru",
+        "provider_port": 587
+    },
+    "auth": {
+        "host": "auth",
+        "port": 2222,
+        "access_ttl": 3000,
+        "refresh_ttl": 6000
+    },
+    "mongo": {
+        "host": "mongo",
+        "port": 27017
+    },
+    "rabbitmq": {
+        "host": "rabbitmq",
+        "port": 5672,
+        "user": "user",
+        "password": "user",
+        "queue": "push"
+    }
+}

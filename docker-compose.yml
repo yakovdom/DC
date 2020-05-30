@@ -1,8 +1,57 @@
 version: "3"
 
 services:
+
   server:
     build: server/
     command: python ./server.py
     ports:
       - 3333:3333
+    depends_on:
+      - mongo
+      - auth
+    restart: always
+
+  auth:
+    build: auth/
+    command: python ./auth.py
+    ports:
+      - 2222:2222
+    depends_on:
+      - rabbitmq
+    restart: always
+
+  push:
+    build: push/
+    command: python ./push.py
+    ports:
+      - 2345:2345
+    depends_on:
+      - rabbitmq
+    restart: always
+
+  mongo:
+    image: mongo
+    ports:
+      - "27017:27017"
+
+  rabbitmq:
+    image: rabbitmq:3.6.6-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=user
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+#  rabbitmq:
+#    environment:
+#      - RABBITMQ_USERNAME=guest
+#      - RABBITMQ_PASSWORD=guest
+
+    #image: 'docker.io/bitnami/rabbitmq:3.8-debian-10'
+#    image: 'bitnami/rabbitmq:latest'
+#    ports:
+#      - '5672:5672'
+#    networks:
+#        - default
