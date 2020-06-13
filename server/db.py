@@ -14,7 +14,6 @@ class DB:
         client = MongoClient(MONGO_HOST, MONGO_PORT)
         db = client.shop
         self.items = db.items
-        self.pagination = db.pagination
 
     def add(self, id, name, category):
         try:
@@ -31,36 +30,25 @@ class DB:
 
         return response, code, {}
 
-    def get_all(self, pagination_id):
+    def get_all(self, offset, limit):
 
         try:
             stage = 0
-
-            if pagination_id:
-                pagination = self.pagination.find_one_and_delete({'id': pagination_id})
-                stage = pagination['stage']
-
-            items = self.items.find({}).sort("name", pymongo.ASCENDING).skip(stage * OBJECS_PER_PAGE).limit(OBJECS_PER_PAGE)
+            req = self.items.find({})
+            items = req.sort("name", pymongo.ASCENDING).skip(offset).limit(limit)
+            count = req.count()
             result = list()
             for item in items:
                 item.pop('_id')
                 result.append(item)
             stage += 1
-            pagination_id = str(uuid.uuid1())
-            pagination = {
-                "id": pagination_id,
-                "stage": stage
-            }
-            self.pagination.insert_one(pagination)
-            headers = {'pagination_id': pagination_id}
-            response = {'result': 'OK', 'items': result}
+            response = {'result': 'OK', 'items': result, 'count': count}
             code = 200
         except Exception as e:
             response = {'result': 'Error', 'error_message': 'Server error {}'.format(e)}
             code = 500
-            headers = {}
 
-        return response, code, headers
+        return response, code, {}
 
     def get_by_id(self, id):
         try:

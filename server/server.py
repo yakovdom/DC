@@ -13,9 +13,11 @@ items = DB()
 authorizer = Authorizer()
 
 
-def check_authorization_and_fields(handler, necessary=[]):
+def check_authorization_and_fields(handler, action, necessary=[]):
     global authorizer
-    body = json.loads(handler.request.body)
+    body = None
+    if len(necessary) != 0:
+        body = json.loads(handler.request.body)
     for field in necessary:
         if field not in body:
             handler.set_status(400, 'Bad request')
@@ -24,7 +26,7 @@ def check_authorization_and_fields(handler, necessary=[]):
             return False
 
     token = handler.request.headers.get('token')
-    if token is None or not authorizer.validate(token):
+    if token is None or not authorizer.validate(token, action):
         handler.set_status(401, 'Unauthorized')
         response = {'result': 'error', 'error_message': 'Unauthorized'}
         handler.write(response)
@@ -51,7 +53,7 @@ def process_db_answer(handler, response, code, headers):
 class ItemHandler(tornado.web.RequestHandler):
     def post(self):
         global items
-        if not check_authorization_and_fields(self, ['name', 'id', 'category']):
+        if not check_authorization_and_fields(self, 'add_item', ['name', 'id', 'category']):
             return
 
         body = json.loads(self.request.body)
@@ -62,7 +64,7 @@ class ItemHandler(tornado.web.RequestHandler):
 
     def get(self):
         global items, authorizer
-        if not check_authorization_and_fields(self, ['id']):
+        if not check_authorization_and_fields(self, 'get_item', ['id']):
             return
 
         body = json.loads(self.request.body)
@@ -71,7 +73,7 @@ class ItemHandler(tornado.web.RequestHandler):
 
     def put(self):
         global items
-        if not check_authorization_and_fields(self, ['id']):
+        if not check_authorization_and_fields(self, 'change_item', ['id']):
             return
 
         body = json.loads(self.request.body)
@@ -81,7 +83,7 @@ class ItemHandler(tornado.web.RequestHandler):
 
     def delete(self):
         global items
-        if not check_authorization_and_fields(self, ['id']):
+        if not check_authorization_and_fields(self, 'delete_item', ['id']):
             return
 
         body = json.loads(self.request.body)
@@ -93,12 +95,25 @@ class ItemHandler(tornado.web.RequestHandler):
 class ItemsHandler(tornado.web.RequestHandler):
     def get(self):
         global items
-        if not check_authorization_and_fields(self):
+        if not check_authorization_and_fields(self, 'get_items'):
             return
 
-        pagination_id = self.request.headers.get('pagination_id')
+        from sys import stdout as st
+        st.write('\n\n{}\n\n'.format(self.request.query))
+        st.flush()
 
-        process_db_answer(self, *items.get_all(pagination_id))
+        try:
+            offset = int(self.get_query_argument('offset'))
+        except:
+            offset = 0
+
+        try:
+            limit = int(self.get_query_argument('limit'))
+        except:
+            limit = 10000
+        st.write('\n\n{} {} \n\n'.format(limit, offset))
+        st.flush()
+        process_db_answer(self, *items.get_all(offset, limit))
 
 
 class Application(tornado.web.Application):

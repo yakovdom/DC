@@ -3,8 +3,10 @@ version: "3"
 services:
 
   server:
-    build: server/
-    command: python ./server.py
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    command: python ./server/server.py
     ports:
       - 3333:3333
     depends_on:
@@ -13,17 +15,23 @@ services:
     restart: always
 
   auth:
-    build: auth/
-    command: python ./auth.py
+    build:
+      context: .
+      dockerfile: auth/Dockerfile
+    command: python ./auth/auth.py
+
     ports:
       - 2222:2222
+      - 6066:6066
     depends_on:
       - rabbitmq
     restart: always
 
   push:
-    build: push/
-    command: python ./push.py
+    build:
+      context: .
+      dockerfile: push/Dockerfile
+    command: python ./push/push.py
     ports:
       - 2345:2345
     depends_on:
@@ -44,14 +52,3 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-#  rabbitmq:
-#    environment:
-#      - RABBITMQ_USERNAME=guest
-#      - RABBITMQ_PASSWORD=guest
-
-    #image: 'docker.io/bitnami/rabbitmq:3.8-debian-10'
-#    image: 'bitnami/rabbitmq:latest'
-#    ports:
-#      - '5672:5672'
-#    networks:
-#        - default

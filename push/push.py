@@ -34,6 +34,7 @@ class EmailManager:
 
 
 emailManager = EmailManager()
+channel = None
 
 
 def callback(ch, method, properties, body):
@@ -42,7 +43,12 @@ def callback(ch, method, properties, body):
     st.write('\n\nGOT: {}\n\n'.format(doc))
     st.flush()
     message = 'Subject: {}\n\n{}'.format("Confirm your email", doc['link'])
-    emailManager.send_email(doc['login'], message)
+    try:
+        emailManager.send_email(doc['login'], message)
+    except:
+        channel.basic_publish(exchange='',
+                                   routing_key=QUEUE_NAME,
+                                   body=message)
 
 def start_queue():
     while 42:

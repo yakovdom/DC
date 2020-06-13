@@ -1,0 +1,14 @@
+syntax = "proto3";
+ 
+message ValidationRequest {
+    string token = 1;
+    string action = 2;
+}
+
+message ValidationResponse {
+    bool is_valid = 1;
+}
+
+service Validator {
+    rpc Validate(ValidationRequest) returns (ValidationResponse) {};
+}

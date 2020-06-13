@@ -1,14 +1,13 @@
 FROM python:latest
 
-ADD requirements.txt /app/
+ADD push/requirements.txt /app/
 RUN apt-get update \
     && apt-get clean \
     && apt-get update -qqq \
     && pip install --upgrade pip \ 
     && pip install -r /app/requirements.txt
 
-ADD *.py /push/
-ADD *.json /push/
-
-
-WORKDIR /push/
+ADD push/*.py /push/
+ADD config/*.py /push/
+ADD config/*.json /
+ADD protos/*.py /push/

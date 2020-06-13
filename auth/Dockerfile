@@ -1,14 +1,15 @@
 FROM python:latest
 
-ADD requirements.txt /app/
+ADD auth/requirements.txt /app/
 RUN apt-get update \
     && apt-get clean \
     && apt-get update -qqq \
     && pip install --upgrade pip \ 
     && pip install -r /app/requirements.txt
 
-ADD *.py /auth/
-ADD *.json /auth/
+ADD auth/*.py /auth/
+ADD config/*.py /auth/
+ADD config/*.json /
+ADD protos/*.py /auth/
 
-
-WORKDIR /auth/
+#WORKDIR ../auth/

@@ -1,18 +1,19 @@
-import requests
-import json
+import grpc
+
+import validation_pb2
+import validation_pb2_grpc
+
 from config import get_config
 config = get_config()
 AUTH_HOST = config['auth']['host']
-AUTH_PORT = config['auth']['port']
+AUTH_PORT = config['auth']['validation_port']
 
 class Authorizer:
-    def validate(self, token):
-        url = 'http://{}:{}/validate'.format(AUTH_HOST, AUTH_PORT)
-        #body = json.dumps({'access_token': token})
-        # response = json.loads(requests.post(url, data=body).text)
-        response = requests.get(
-            url,
-            headers={'token': token}
-        )
-        #response = json.loads(requests.get(url, data=body).text)
-        return response.status_code == 200
+    def validate(self, token, action):
+        channel = grpc.insecure_channel('{}:{}'.format(AUTH_HOST, AUTH_PORT))
+        stub = validation_pb2_grpc.ValidatorStub(channel)
+        request = validation_pb2.ValidationRequest(token=token, action=action)
+        response = stub.Validate(request)
+        print(response.is_valid)
+        return response.is_valid
+
